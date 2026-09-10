@@ -1,21 +1,26 @@
 <!DOCTYPE html>
-<html lang="id" class="h-full bg-slate-50">
+<html lang="id">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistem Absensi Perkuliahan Berbasis NIM</title>
+    <title>Sistem Absensi Mahasiswa - Sekretaris</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
     <script>
         tailwind.config = {
             theme: {
                 extend: {
                     fontFamily: {
-                        sans: ['Inter', 'sans-serif'],
+                        sans: ['Plus Jakarta Sans', 'sans-serif'],
                     },
                     colors: {
                         brand: {
-                            50: '#f0f3ff',
+                            50: '#eef2ff',
                             100: '#e0e7ff',
                             500: '#6366f1',
                             600: '#4f46e5',
@@ -27,1183 +32,772 @@
             }
         }
     </script>
-    <!-- Google Font Inter -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <!-- Lucide Icons -->
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <style>
-        body { font-family: 'Inter', sans-serif; }
-        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
-    </style>
 </head>
-<body class="h-full text-slate-800 flex flex-col antialiased selection:bg-brand-500 selection:text-white">
+<body class="bg-slate-50 text-slate-800 font-sans min-h-screen flex flex-col antialiased">
 
-    <!-- Toast Notification Container -->
-    <div id="toast-container" class="fixed top-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
-
-    <!-- Modal Container for Dialogs -->
-    <div id="modal-overlay" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-40 hidden flex items-center justify-center p-4">
-        <div id="modal-box" class="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-6 transition-all transform scale-95 opacity-0">
-            <div id="modal-content"></div>
-        </div>
-    </div>
-
-    <!-- Header / Navigation Bar -->
-    <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
+    <!-- Header / Navbar -->
+    <header class="bg-brand-600 text-white shadow-lg sticky top-0 z-40">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
             <div class="flex items-center space-x-3">
-                <div class="w-10 h-10 rounded-xl bg-brand-600 flex items-center justify-center text-white shadow-md shadow-brand-500/20">
-                    <i data-lucide="user-check" class="w-6 h-6"></i>
+                <div class="bg-white/20 p-2 rounded-xl backdrop-blur-md">
+                    <i class="fa-solid fa-clipboard-user text-xl text-white"></i>
                 </div>
                 <div>
-                    <h1 class="font-bold text-lg text-slate-900 leading-tight">PresensiKu <span class="text-brand-600 text-xs font-semibold px-2 py-0.5 bg-brand-50 rounded-full border border-brand-100">Pro</span></h1>
-                    <p class="text-xs text-slate-500">Sistem Absensi Perkuliahan Real-Time</p>
+                    <h1 class="font-bold text-lg leading-tight">Absensi Mahasiswa</h1>
+                    <p class="text-xs text-brand-100">Portal Sekretaris & Presensi NIM</p>
                 </div>
             </div>
 
-            <!-- Header Right Controls -->
-            <div class="flex items-center space-x-3">
-                <!-- Clock Badge -->
-                <div class="hidden md:flex items-center space-x-2 bg-slate-100 px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-medium text-slate-700">
-                    <i data-lucide="clock" class="w-4 h-4 text-brand-600 animate-pulse"></i>
-                    <span id="live-clock">--:--:-- WIB</span>
-                </div>
-
-                <!-- Google Apps Script Guide Trigger -->
-                <button onclick="openGasModal()" class="px-3 py-1.5 text-xs font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-lg flex items-center gap-1.5 transition">
-                    <i data-lucide="file-spreadsheet" class="w-4 h-4"></i>
-                    <span>Integrasi Google Sheets</span>
+            <div class="flex items-center space-x-2">
+                <span id="badge-session-status" class="px-3 py-1 text-xs font-semibold rounded-full bg-emerald-500/20 text-emerald-100 border border-emerald-400/30 flex items-center gap-1.5">
+                    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                    Sesi Aktif
+                </span>
+                
+                <button id="btn-toggle-admin" onclick="openAdminModal()" class="ml-2 bg-white/10 hover:bg-white/20 text-white px-3 py-1.5 rounded-lg text-sm font-medium transition flex items-center gap-2 border border-white/20">
+                    <i class="fa-solid fa-user-gear"></i>
+                    <span id="label-admin-btn">Login Sekretaris</span>
                 </button>
-
-                <!-- Role Mode Switcher -->
-                <div class="bg-slate-100 p-1 rounded-xl border border-slate-200 flex text-xs font-semibold">
-                    <button id="btn-mode-mahasiswa" onclick="switchMode('mahasiswa')" class="px-3 py-1.5 rounded-lg transition-all duration-200 bg-white text-brand-600 shadow-sm">
-                        <i data-lucide="user" class="w-3.5 h-3.5 inline mr-1"></i> Mahasiswa
-                    </button>
-                    <button id="btn-mode-dosen" onclick="switchMode('dosen')" class="px-3 py-1.5 rounded-lg transition-all duration-200 text-slate-600 hover:text-slate-900">
-                        <i data-lucide="shield-check" class="w-3.5 h-3.5 inline mr-1"></i> Dosen / Admin
-                    </button>
-                </div>
             </div>
         </div>
     </header>
 
     <!-- Main Content Container -->
-    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
 
-        <!-- VIEW: MAHASISWA (FORM ABSENSI) -->
-        <section id="view-mahasiswa" class="max-w-2xl mx-auto space-y-6">
+        <!-- Banner Info Sesi Aktif -->
+        <div class="bg-gradient-to-r from-brand-600 to-indigo-700 rounded-2xl p-6 text-white shadow-xl relative overflow-hidden">
+            <div class="absolute -right-10 -bottom-10 w-40 h-40 bg-white/10 rounded-full blur-2xl pointer-events-none"></div>
             
-            <!-- Active Session Banner -->
-            <div id="student-session-card" class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm relative overflow-hidden transition-all">
-                <div class="flex items-start justify-between">
-                    <div>
-                        <span id="student-session-badge" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 mb-3">
-                            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span> Presensi Dibuka
-                        </span>
-                        <h2 id="student-session-title" class="text-xl font-bold text-slate-900">Pertemuan 1: Pengenalan Mata Kuliah</h2>
-                        <p id="student-session-sub" class="text-sm text-slate-500 mt-1">Mata Kuliah: Pemrograman Web Lanjut</p>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 items-center relative z-10">
+                <div class="md:col-span-2 space-y-2">
+                    <div class="flex items-center gap-2 text-brand-200 text-sm font-medium">
+                        <i class="fa-regular fa-calendar-check"></i>
+                        <span>Sesi Pertemuan yang Sedang Berjalan</span>
                     </div>
+                    <h2 class="text-2xl sm:text-3xl font-extrabold" id="display-pertemuan">Pertemuan Ke-1</h2>
+                    <p class="text-brand-100 text-sm flex items-center gap-2">
+                        <i class="fa-regular fa-clock"></i>
+                        <span>Jam Operasional: <strong id="display-jam-operasional" class="text-white">08:00 - 10:00 WITA</strong></span>
+                    </p>
                 </div>
 
-                <div class="mt-6 pt-4 border-t border-slate-100 grid grid-cols-2 sm:grid-cols-3 gap-4 text-xs">
-                    <div>
-                        <span class="text-slate-400 block">Jam Buka</span>
-                        <span id="student-session-start" class="font-semibold text-slate-700">08:00 WIB</span>
-                    </div>
-                    <div>
-                        <span class="text-slate-400 block">Batas Akhir Selesai</span>
-                        <span id="student-session-end" class="font-semibold text-slate-700">10:00 WIB</span>
-                    </div>
-                    <div>
-                        <span class="text-slate-400 block">Toleransi Terlambat</span>
-                        <span id="student-session-late" class="font-semibold text-amber-600">+15 Menit</span>
-                    </div>
+                <div class="bg-white/10 backdrop-blur-md rounded-xl p-4 border border-white/20 flex flex-col items-center justify-center text-center">
+                    <span class="text-xs text-brand-200 uppercase tracking-wider font-semibold">Sisa Waktu Absen</span>
+                    <div class="text-3xl font-black my-1 font-mono tracking-tight" id="countdown-timer">00:00:00</div>
+                    <span class="text-xs px-2.5 py-0.5 rounded-full bg-white/20 text-white" id="timer-status-text">Menghitung...</span>
                 </div>
             </div>
+        </div>
 
-            <!-- Attendance Input Card -->
-            <div class="bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 shadow-sm">
-                <div class="text-center mb-6">
-                    <div class="w-12 h-12 bg-brand-50 text-brand-600 rounded-2xl flex items-center justify-center mx-auto mb-3">
-                        <i data-lucide="qr-code" class="w-6 h-6"></i>
-                    </div>
-                    <h3 class="text-lg font-bold text-slate-900">Form Input Kehadiran</h3>
-                    <p class="text-sm text-slate-500">Masukkan Nomor Induk Mahasiswa (NIM) Anda untuk mencatat kehadiran</p>
-                </div>
-
-                <form id="attendance-form" onsubmit="handleAttendanceSubmit(event)" class="space-y-4">
-                    <div>
-                        <label for="input-nim" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-2">NIM (Nomor Induk Mahasiswa)</label>
-                        <div class="relative">
-                            <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
-                                <i data-lucide="id-card" class="w-5 h-5"></i>
-                            </div>
-                            <input type="text" id="input-nim" required placeholder="Contoh: 210101001" 
-                                class="w-full pl-11 pr-4 py-3.5 bg-slate-50 border border-slate-300 rounded-xl font-mono text-base focus:ring-2 focus:ring-brand-500 focus:bg-white focus:border-brand-500 outline-none transition-all">
-                        </div>
-                    </div>
-
-                    <button type="submit" id="btn-submit-attendance" 
-                        class="w-full py-3.5 px-4 bg-brand-600 hover:bg-brand-700 active:bg-brand-800 text-white font-semibold rounded-xl shadow-lg shadow-brand-500/25 hover:shadow-brand-500/40 transition-all flex items-center justify-center gap-2">
-                        <i data-lucide="check-circle-2" class="w-5 h-5"></i>
-                        <span>Kirim Presensi Sekarang</span>
-                    </button>
-                </form>
-
-                <!-- Feedback Card (Success/Error Message Display) -->
-                <div id="attendance-result" class="mt-6 hidden"></div>
-            </div>
-
-            <!-- Sample NIM Quick Tester (For Demo convenience) -->
-            <div class="bg-amber-50/70 border border-amber-200 rounded-xl p-4 text-xs text-amber-900">
-                <div class="flex items-center gap-2 font-semibold mb-1 text-amber-800">
-                    <i data-lucide="lightbulb" class="w-4 h-4 text-amber-600"></i>
-                    <span>Mode Pengujian Cepat (Klik NIM di bawah):</span>
-                </div>
-                <div id="sample-nim-pills" class="flex flex-wrap gap-1.5 mt-2"></div>
-            </div>
-
-        </section>
-
-
-        <!-- VIEW: DOSEN / ADMIN DASHBOARD -->
-        <section id="view-dosen" class="hidden space-y-6">
-
-            <!-- Admin Navigation Tabs -->
-            <div class="border-b border-slate-200">
-                <nav class="-mb-px flex space-x-6 overflow-x-auto custom-scrollbar">
-                    <button onclick="switchAdminTab('session')" id="tab-btn-session" class="admin-tab-btn py-3 px-1 border-b-2 font-medium text-sm flex items-center gap-2 border-brand-600 text-brand-600">
-                        <i data-lucide="settings-2" class="w-4 h-4"></i> Pengaturan Sesi
-                    </button>
-                    <button onclick="switchAdminTab('master')" id="tab-btn-master" class="admin-tab-btn py-3 px-1 border-b-2 font-medium text-sm flex items-center gap-2 border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300">
-                        <i data-lucide="users" class="w-4 h-4"></i> Master Data Mahasiswa (<span id="count-master-students">0</span>)
-                    </button>
-                    <button onclick="switchAdminTab('recap')" id="tab-btn-recap" class="admin-tab-btn py-3 px-1 border-b-2 font-medium text-sm flex items-center gap-2 border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300">
-                        <i data-lucide="table" class="w-4 h-4"></i> Rekapitulasi Presensi
-                    </button>
-                    <button onclick="switchAdminTab('gas')" id="tab-btn-gas" class="admin-tab-btn py-3 px-1 border-b-2 font-medium text-sm flex items-center gap-2 border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300">
-                        <i data-lucide="code-2" class="w-4 h-4"></i> Backend Google Sheets
-                    </button>
-                </nav>
-            </div>
-
-            <!-- TAB 1: PENGATURAN SESI -->
-            <div id="admin-tab-session" class="space-y-6">
-                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    
-                    <!-- Form Setting Sesi Aktif -->
-                    <div class="lg:col-span-2 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-5">
-                        <div class="flex items-center justify-between border-b border-slate-100 pb-4">
-                            <div>
-                                <h3 class="font-bold text-slate-900 text-base">Konfigurasi Jam & Sesi Presensi</h3>
-                                <p class="text-xs text-slate-500">Atur jadwal mulai, jam selesai, dan toleransi keterlambatan.</p>
-                            </div>
-                            <button onclick="addNewSessionPrompt()" class="text-xs px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-lg flex items-center gap-1 transition">
-                                <i data-lucide="plus" class="w-3.5 h-3.5"></i> Buat Pertemuan Baru
-                            </button>
-                        </div>
-
-                        <form id="session-config-form" onsubmit="saveSessionConfig(event)" class="space-y-4">
-                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <div>
-                                    <label class="block text-xs font-semibold text-slate-700 mb-1">Pilih Pertemuan Ke-</label>
-                                    <select id="select-session-id" onchange="loadSelectedSessionToForm()" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-brand-500 outline-none">
-                                        <!-- Populated via JS -->
-                                    </select>
-                                </div>
-                                <div>
-                                    <label class="block text-xs font-semibold text-slate-700 mb-1">Topik / Nama Pertemuan</label>
-                                    <input type="text" id="cfg-session-title" required class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-brand-500 outline-none" placeholder="Misal: Algoritma Searching">
-                                </div>
-                            </div>
-
-                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                                <div>
-                                    <label class="block text-xs font-semibold text-slate-700 mb-1">Jam Mulai (Buka)</label>
-                                    <input type="time" id="cfg-start-time" required class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-brand-500 outline-none">
-                                </div>
-                                <div>
-                                    <label class="block text-xs font-semibold text-slate-700 mb-1">Jam Selesai (Tutup)</label>
-                                    <input type="time" id="cfg-end-time" required class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-brand-500 outline-none">
-                                </div>
-                                <div>
-                                    <label class="block text-xs font-semibold text-slate-700 mb-1">Toleransi Terlambat (Menit)</label>
-                                    <input type="number" min="0" max="120" id="cfg-late-minutes" required class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-brand-500 outline-none" placeholder="15">
-                                </div>
-                            </div>
-
-                            <!-- Manual Switch / Force Control -->
-                            <div class="p-4 bg-slate-50 rounded-xl border border-slate-200">
-                                <label class="block text-xs font-semibold text-slate-700 mb-2">Kontrol Manual Status Presensi (Override)</label>
-                                <div class="grid grid-cols-3 gap-2">
-                                    <label class="flex items-center justify-center gap-2 p-2.5 bg-white border border-slate-200 rounded-lg cursor-pointer hover:border-brand-400 text-xs font-medium">
-                                        <input type="radio" name="forceStatus" value="auto" checked class="text-brand-600 focus:ring-brand-500">
-                                        <span>Otomatis (Ikuti Jam)</span>
-                                    </label>
-                                    <label class="flex items-center justify-center gap-2 p-2.5 bg-white border border-slate-200 rounded-lg cursor-pointer hover:border-brand-400 text-xs font-medium text-emerald-700">
-                                        <input type="radio" name="forceStatus" value="open" class="text-emerald-600 focus:ring-emerald-500">
-                                        <span>Paksa Buka Sekarang</span>
-                                    </label>
-                                    <label class="flex items-center justify-center gap-2 p-2.5 bg-white border border-slate-200 rounded-lg cursor-pointer hover:border-brand-400 text-xs font-medium text-rose-700">
-                                        <input type="radio" name="forceStatus" value="close" class="text-rose-600 focus:ring-rose-500">
-                                        <span>Paksa Tutup Sekarang</span>
-                                    </label>
-                                </div>
-                            </div>
-
-                            <div class="flex justify-end gap-3 pt-2">
-                                <button type="submit" class="px-5 py-2.5 bg-brand-600 hover:bg-brand-700 text-white font-semibold rounded-xl text-sm shadow-md shadow-brand-500/20 transition flex items-center gap-2">
-                                    <i data-lucide="save" class="w-4 h-4"></i> Simpan & Terapkan Sesi
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-
-                    <!-- Summary Status Box -->
-                    <div class="bg-slate-900 text-white p-6 rounded-2xl flex flex-col justify-between relative overflow-hidden shadow-lg">
-                        <div class="space-y-4">
-                            <span class="text-xs font-semibold tracking-widest text-brand-400 uppercase">Sesi Presensi Aktif</span>
-                            <h4 id="admin-active-title" class="text-2xl font-bold text-white">Pertemuan 1</h4>
-                            <div class="space-y-2 text-xs text-slate-300">
-                                <div class="flex justify-between border-b border-slate-800 pb-2">
-                                    <span>Status Sistem:</span>
-                                    <span id="admin-active-status" class="font-semibold text-emerald-400">MEMBUKA PRESENSI</span>
-                                </div>
-                                <div class="flex justify-between border-b border-slate-800 pb-2">
-                                    <span>Rentang Waktu:</span>
-                                    <span id="admin-active-range" class="font-semibold text-white">08:00 - 10:00</span>
-                                </div>
-                                <div class="flex justify-between border-b border-slate-800 pb-2">
-                                    <span>Toleransi Masuk:</span>
-                                    <span id="admin-active-tolerance" class="font-semibold text-amber-300">+15 Menit</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="mt-8 pt-4 border-t border-slate-800 text-center">
-                            <p class="text-xs text-slate-400">Total Mahasiswa Sudah Absen Hari Ini</p>
-                            <span id="admin-active-count" class="text-4xl font-extrabold text-white mt-1 block">0 / 0</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- TAB 2: MASTER DATA MAHASISWA -->
-            <div id="admin-tab-master" class="hidden space-y-6">
-                <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-6">
-                    
-                    <!-- Master Header & Action Buttons -->
-                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <!-- Section Main: Student Presensi Form & Admin Control -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            
+            <!-- Student Form Presensi -->
+            <div class="lg:col-span-2 space-y-6">
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 sm:p-8">
+                    <div class="flex items-center justify-between pb-6 mb-6 border-b border-slate-100">
                         <div>
-                            <h3 class="font-bold text-slate-900 text-base">Daftar Master Mahasiswa</h3>
-                            <p class="text-xs text-slate-500">Mahasiswa yang terdaftar dan berhak melakukan absen.</p>
+                            <h3 class="text-xl font-bold text-slate-900">Form Absensi Mahasiswa</h3>
+                            <p class="text-sm text-slate-500">Masukkan NIM untuk mencatat kehadiran hari ini.</p>
                         </div>
-                        <div class="flex items-center gap-2">
-                            <button onclick="openImportModal()" class="px-3.5 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 font-semibold text-xs rounded-xl flex items-center gap-1.5 transition">
-                                <i data-lucide="file-up" class="w-4 h-4"></i> Import / Paste Massal (CSV)
-                            </button>
-                            <button onclick="openAddStudentModal()" class="px-3.5 py-2 bg-brand-600 hover:bg-brand-700 text-white font-semibold text-xs rounded-xl flex items-center gap-1.5 transition">
-                                <i data-lucide="user-plus" class="w-4 h-4"></i> Tambah Mahasiswa
-                            </button>
+                        <div class="w-10 h-10 rounded-full bg-brand-50 flex items-center justify-center text-brand-600">
+                            <i class="fa-solid fa-id-card text-lg"></i>
                         </div>
                     </div>
 
-                    <!-- Filter / Search bar -->
-                    <div class="relative max-w-xs">
-                        <i data-lucide="search" class="w-4 h-4 absolute left-3 top-2.5 text-slate-400"></i>
-                        <input type="text" id="search-student" oninput="renderMasterTable()" placeholder="Cari NIM atau Nama..." class="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-brand-500 outline-none">
-                    </div>
+                    <form id="form-presensi" onsubmit="handleFormSubmit(event)" class="space-y-5">
+                        <div>
+                            <label class="block text-sm font-semibold text-slate-700 mb-2">Nomor Induk Mahasiswa (NIM)</label>
+                            <div class="relative">
+                                <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                                    <i class="fa-solid fa-hashtag"></i>
+                                </span>
+                                <input type="text" id="input-nim" placeholder="Masukkan NIM Anda" required
+                                    oninput="autoCheckNIM()"
+                                    class="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500 focus:border-brand-500 focus:bg-white text-slate-900 font-mono text-lg font-semibold transition">
+                            </div>
+                        </div>
 
-                    <!-- Master Student Table -->
-                    <div class="overflow-x-auto border border-slate-200 rounded-xl">
-                        <table class="w-full text-left text-xs">
-                            <thead class="bg-slate-50 border-b border-slate-200 uppercase text-slate-500 font-semibold">
+                        <!-- Auto Detected Name -->
+                        <div id="box-detected-name" class="hidden p-4 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center justify-between">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-9 h-9 rounded-full bg-emerald-500 text-white flex items-center justify-center font-bold">
+                                    <i class="fa-solid fa-user-check"></i>
+                                </div>
+                                <div>
+                                    <span class="text-xs text-emerald-600 font-semibold uppercase">Mahasiswa Terdeteksi</span>
+                                    <h4 id="text-detected-name" class="font-bold text-slate-800 text-base">Nama Mahasiswa</h4>
+                                </div>
+                            </div>
+                            <span class="text-xs bg-emerald-200 text-emerald-800 px-2.5 py-1 rounded-md font-semibold">Terverifikasi</span>
+                        </div>
+
+                        <!-- Manual Name Input Fallback -->
+                        <div id="box-manual-name" class="hidden">
+                            <label class="block text-sm font-semibold text-slate-700 mb-2">Nama Lengkap (NIM Baru)</label>
+                            <input type="text" id="input-nama-manual" placeholder="Masukkan nama lengkap Anda" 
+                                class="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500 text-slate-900 font-medium">
+                        </div>
+
+                        <button type="submit" id="btn-submit-absen" 
+                            class="w-full bg-brand-600 hover:bg-brand-700 text-white font-bold py-3.5 px-6 rounded-xl shadow-lg shadow-brand-500/30 transition duration-200 flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                            <i class="fa-solid fa-paper-plane"></i>
+                            <span>Kirim Absensi Sekarang</span>
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Live Log Activity -->
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h4 class="font-bold text-slate-900 flex items-center gap-2">
+                            <i class="fa-solid fa-bolt text-amber-500"></i>
+                            Aktivitas Absensi Terbaru
+                        </h4>
+                        <span class="text-xs text-slate-500" id="text-total-hadir">Total Sesi Ini: 0 Mahasiswa</span>
+                    </div>
+                    
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm text-left text-slate-600">
+                            <thead class="text-xs text-slate-500 uppercase bg-slate-50 border-b border-slate-200">
                                 <tr>
-                                    <th class="py-3 px-4">No</th>
-                                    <th class="py-3 px-4">NIM</th>
-                                    <th class="py-3 px-4">Nama Lengkap Mahasiswa</th>
-                                    <th class="py-3 px-4 text-right">Aksi</th>
+                                    <th class="px-4 py-3">Waktu</th>
+                                    <th class="px-4 py-3">NIM</th>
+                                    <th class="px-4 py-3">Nama Mahasiswa</th>
+                                    <th class="px-4 py-3 text-center">Status</th>
                                 </tr>
                             </thead>
-                            <tbody id="master-student-tbody" class="divide-y divide-slate-100 text-slate-700">
-                                <!-- Populated dynamically -->
+                            <tbody id="table-recent-logs" class="divide-y divide-slate-100">
+                                <tr>
+                                    <td colspan="4" class="px-4 py-6 text-center text-slate-400">Belum ada mahasiswa yang absen pada sesi ini.</td>
+                                </tr>
                             </tbody>
                         </table>
                     </div>
                 </div>
             </div>
 
-            <!-- TAB 3: REKAPITULASI ABSENSI -->
-            <div id="admin-tab-recap" class="hidden space-y-6">
-                <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-6">
-                    
-                    <!-- Header Recap Controls -->
-                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <!-- Admin Sidebar Control -->
+            <div class="space-y-6">
+                <!-- Status Integrasi Spreadsheet -->
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+                    <div class="flex items-center justify-between mb-3">
+                        <h4 class="font-bold text-slate-900 text-sm flex items-center gap-2">
+                            <i class="fa-file-spreadsheet text-emerald-600"></i>
+                            Google Sheets Backend
+                        </h4>
+                        <span id="indicator-sheet-status" class="w-2.5 h-2.5 rounded-full bg-slate-300"></span>
+                    </div>
+                    <p class="text-xs text-slate-500 mb-4">
+                        Tercatat di Sheet Tab: <strong id="text-active-sheet-target" class="text-brand-600 font-semibold">"Pertemuan 1"</strong>.
+                    </p>
+                    <button onclick="openAdminModal()" class="w-full text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold py-2 px-3 rounded-lg transition border border-slate-200 flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-link"></i>
+                        <span>Pengaturan Apps Script URL</span>
+                    </button>
+                </div>
+
+                <!-- Admin Card Sekretaris -->
+                <div class="bg-slate-900 text-white rounded-2xl shadow-lg p-6 space-y-4">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-10 h-10 rounded-xl bg-brand-500/20 text-brand-400 flex items-center justify-center font-bold">
+                            <i class="fa-solid fa-user-shield"></i>
+                        </div>
                         <div>
-                            <h3 class="font-bold text-slate-900 text-base">Matriks Rekapitulasi Presensi Perkuliahan</h3>
-                            <p class="text-xs text-slate-500">Laporan kehadiran seluruh mahasiswa pada setiap pertemuan.</p>
-                        </div>
-                        <div class="flex items-center gap-2">
-                            <button onclick="exportRecapCSV()" class="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs rounded-xl flex items-center gap-2 transition shadow-md">
-                                <i data-lucide="download" class="w-4 h-4"></i> Export ke CSV / Excel
-                            </button>
+                            <h4 class="font-bold text-sm">Sekretaris Kelas</h4>
+                            <p class="text-xs text-slate-400" id="text-admin-email-display">dairyfindi@gmail.com</p>
                         </div>
                     </div>
 
-                    <!-- Summary Statistics Cards -->
-                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
-                            <span class="text-slate-500 text-xs font-medium">Total Mahasiswa</span>
-                            <p id="stat-total-students" class="text-2xl font-bold text-slate-900 mt-1">0</p>
-                        </div>
-                        <div class="bg-emerald-50 p-4 rounded-xl border border-emerald-200">
-                            <span class="text-emerald-700 text-xs font-medium">Total Hadir Tepat Waktu</span>
-                            <p id="stat-total-hadir" class="text-2xl font-bold text-emerald-800 mt-1">0</p>
-                        </div>
-                        <div class="bg-amber-50 p-4 rounded-xl border border-amber-200">
-                            <span class="text-amber-700 text-xs font-medium">Total Terlambat</span>
-                            <p id="stat-total-late" class="text-2xl font-bold text-amber-800 mt-1">0</p>
-                        </div>
-                        <div class="bg-rose-50 p-4 rounded-xl border border-rose-200">
-                            <span class="text-rose-700 text-xs font-medium">Total Alpha / Absence</span>
-                            <p id="stat-total-alpha" class="text-2xl font-bold text-rose-800 mt-1">0</p>
-                        </div>
-                    </div>
-
-                    <!-- Matrix Table -->
-                    <div class="overflow-x-auto border border-slate-200 rounded-xl custom-scrollbar">
-                        <table class="w-full text-left text-xs whitespace-nowrap">
-                            <thead id="recap-thead" class="bg-slate-100 border-b border-slate-200 text-slate-700 font-bold uppercase">
-                                <!-- Populated dynamically -->
-                            </thead>
-                            <tbody id="recap-tbody" class="divide-y divide-slate-100">
-                                <!-- Populated dynamically -->
-                            </tbody>
-                        </table>
-                    </div>
-
-                    <div class="flex items-center gap-4 text-xs text-slate-500 pt-2">
-                        <span class="font-semibold">Keterangan Status:</span>
-                        <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block"></span> H: Hadir</span>
-                        <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-amber-500 inline-block"></span> T: Terlambat</span>
-                        <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-rose-500 inline-block"></span> A: Alpha</span>
-                    </div>
-
-                </div>
-            </div>
-
-            <!-- TAB 4: INTEGRASI GOOGLE SHEETS (GAS CODE) -->
-            <div id="admin-tab-gas" class="hidden space-y-6">
-                <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-6">
-                    <div>
-                        <h3 class="font-bold text-slate-900 text-base">Panduan Hubungkan ke Google Sheets (Backend Apps Script)</h3>
-                        <p class="text-xs text-slate-500">Gunakan kode di bawah ini jika ingin menyimpan data absensi secara online di Spreadsheet milik Anda.</p>
-                    </div>
-
-                    <div class="space-y-3 text-xs text-slate-600 bg-slate-50 p-4 rounded-xl border border-slate-200">
-                        <p class="font-semibold text-slate-800">Langkah-Langkah Integrasi:</p>
-                        <ol class="list-decimal list-inside space-y-1.5 pl-1">
-                            <li>Buka Google Spreadsheet baru di Google Drive Anda.</li>
-                            <li>Buat sheet bernama <code class="bg-slate-200 px-1 py-0.5 rounded font-mono text-slate-900">Mahasiswa</code> (Kolom A: NIM, Kolom B: Nama).</li>
-                            <li>Buat sheet bernama <code class="bg-slate-200 px-1 py-0.5 rounded font-mono text-slate-900">Absensi</code> (Kolom: Waktu, NIM, Nama, Pertemuan, Status).</li>
-                            <li>Klik menu <b>Ekstensi &gt; Apps Script</b>.</li>
-                            <li>Salin dan tempel kode <code class="bg-slate-200 px-1 py-0.5 rounded font-mono text-slate-900">Code.gs</code> di bawah ini, lalu klik <b>Deploy &gt; New Deployment &gt; Web App</b> (Akses: <i>Anyone</i>).</li>
-                        </ol>
-                    </div>
-
-                    <div class="relative">
-                        <button onclick="copyGasCode()" class="absolute top-3 right-3 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold rounded-lg flex items-center gap-1">
-                            <i data-lucide="copy" class="w-3.5 h-3.5"></i> Copy Kode GAS
+                    <div class="space-y-2 pt-2 border-t border-slate-800">
+                        <button onclick="openAdminModal()" class="w-full text-left bg-slate-800 hover:bg-slate-700 text-slate-200 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition flex items-center justify-between">
+                            <span><i class="fa-solid fa-clock-rotate-left mr-2 text-brand-400"></i>Atur Jam & Pertemuan</span>
+                            <i class="fa-solid fa-chevron-right text-slate-500"></i>
                         </button>
-                        <pre id="gas-code-block" class="bg-slate-900 text-slate-100 p-4 rounded-xl text-xs font-mono overflow-x-auto custom-scrollbar leading-relaxed">
-// ==========================================
-// KODE GOOGLE APPS SCRIPT (Code.gs)
-// ==========================================
-
-function doGet(e) {
-  return HtmlService.createHtmlOutput('<h3>Web App Presensi Aktif</h3>')
-    .setTitle('Presensi Online');
-}
-
-function doPost(e) {
-  try {
-    var data = JSON.parse(e.postData.contents);
-    var ss = SpreadsheetApp.getActiveSpreadsheet();
-    var sheetAbsen = ss.getSheetByName('Absensi');
-    
-    // Format Simpan: [Timestamp, NIM, Nama, Pertemuan, Status]
-    sheetAbsen.appendRow([
-      new Date(),
-      data.nim,
-      data.nama,
-      data.pertemuan,
-      data.status
-    ]);
-    
-    return ContentService.createTextOutput(JSON.stringify({
-      status: 'success',
-      message: 'Presensi berhasil dicatat di Google Sheets'
-    })).setMimeType(ContentService.MimeType.JSON);
-    
-  } catch (err) {
-    return ContentService.createTextOutput(JSON.stringify({
-      status: 'error',
-      message: err.toString()
-    })).setMimeType(ContentService.MimeType.JSON);
-  }
-}
-                        </pre>
+                        <button onclick="openMasterDataModal()" class="w-full text-left bg-slate-800 hover:bg-slate-700 text-slate-200 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition flex items-center justify-between">
+                            <span><i class="fa-solid fa-users text-emerald-400 mr-2"></i>Kelola Master Data NIM</span>
+                            <i class="fa-solid fa-chevron-right text-slate-500"></i>
+                        </button>
+                        <button onclick="openRekapModal()" class="w-full text-left bg-slate-800 hover:bg-slate-700 text-slate-200 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition flex items-center justify-between">
+                            <span><i class="fa-solid fa-table text-amber-400 mr-2"></i>Rekapitulasi Semua Sesi</span>
+                            <i class="fa-solid fa-chevron-right text-slate-500"></i>
+                        </button>
                     </div>
                 </div>
             </div>
-
-        </section>
-
+        </div>
     </main>
 
-    <!-- Javascript Engine & Local Storage Management -->
-    <script>
-        // Default Mock Data Seed
-        const DEFAULT_STUDENTS = [
-            { nim: "210101001", name: "Ahmad Rizky Pratama" },
-            { nim: "210101002", name: "Siti Rahma Syahfitri" },
-            { nim: "210101003", name: "Budi Santoso Wibowo" },
-            { nim: "210101004", name: "Dian Sastro Ningrum" },
-            { nim: "210101005", name: "Eko Prasetyo Utomo" },
-            { nim: "210101006", name: "Farah Amalia" },
-            { nim: "210101007", name: "Gilang Ramadhan" },
-            { nim: "210101008", name: "Hani Nurhaliza" }
-        ];
-
-        const DEFAULT_SESSIONS = [
-            { id: 1, title: "Pertemuan 1: Pengenalan Web", startTime: "07:00", endTime: "23:59", lateMinutes: 15, forceStatus: "auto" },
-            { id: 2, title: "Pertemuan 2: HTML & CSS Modern", startTime: "08:00", endTime: "10:00", lateMinutes: 15, forceStatus: "auto" },
-            { id: 3, title: "Pertemuan 3: JavaScript Engine", startTime: "08:00", endTime: "10:00", lateMinutes: 15, forceStatus: "auto" }
-        ];
-
-        // App Application State
-        let appState = {
-            mode: 'mahasiswa', // 'mahasiswa' | 'dosen'
-            activeTab: 'session', // 'session' | 'master' | 'recap' | 'gas'
-            students: [],
-            sessions: [],
-            activeSessionId: 1,
-            attendances: [] // Array of { id, sessionId, nim, timestamp, status: 'HADIR' | 'TERLAMBAT' }
-        };
-
-        // Initialize Application
-        window.onload = function() {
-            loadFromLocalStorage();
-            startLiveClock();
-            updateUI();
-            lucide.createIcons();
-        };
-
-        // Local Storage Handlers
-        function saveToLocalStorage() {
-            localStorage.setItem('presensiku_students', JSON.stringify(appState.students));
-            localStorage.setItem('presensiku_sessions', JSON.stringify(appState.sessions));
-            localStorage.setItem('presensiku_active_session', appState.activeSessionId.toString());
-            localStorage.setItem('presensiku_attendances', JSON.stringify(appState.attendances));
-        }
-
-        function loadFromLocalStorage() {
-            const savedStudents = localStorage.getItem('presensiku_students');
-            const savedSessions = localStorage.getItem('presensiku_sessions');
-            const savedActiveSess = localStorage.getItem('presensiku_active_session');
-            const savedAttendances = localStorage.getItem('presensiku_attendances');
-
-            appState.students = savedStudents ? JSON.parse(savedStudents) : [...DEFAULT_STUDENTS];
-            appState.sessions = savedSessions ? JSON.parse(savedSessions) : [...DEFAULT_SESSIONS];
-            appState.activeSessionId = savedActiveSess ? parseInt(savedActiveSess) : 1;
-            appState.attendances = savedAttendances ? JSON.parse(savedAttendances) : [];
-
-            saveToLocalStorage();
-        }
-
-        // Clock Function
-        function startLiveClock() {
-            const clockEl = document.getElementById('live-clock');
-            function tick() {
-                const now = new Date();
-                const timeStr = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) + ' WIB';
-                if(clockEl) clockEl.textContent = timeStr;
-                
-                // Realtime status re-eval
-                evaluateSessionStatus();
-            }
-            tick();
-            setInterval(tick, 1000);
-        }
-
-        // Mode Switching (Mahasiswa vs Dosen)
-        function switchMode(mode) {
-            appState.mode = mode;
-            const btnMahasiswa = document.getElementById('btn-mode-mahasiswa');
-            const btnDosen = document.getElementById('btn-mode-dosen');
-            const viewMahasiswa = document.getElementById('view-mahasiswa');
-            const viewDosen = document.getElementById('view-dosen');
-
-            if (mode === 'mahasiswa') {
-                btnMahasiswa.className = "px-3 py-1.5 rounded-lg transition-all duration-200 bg-white text-brand-600 shadow-sm font-semibold";
-                btnDosen.className = "px-3 py-1.5 rounded-lg transition-all duration-200 text-slate-600 hover:text-slate-900";
-                viewMahasiswa.classList.remove('hidden');
-                viewDosen.classList.add('hidden');
-            } else {
-                btnDosen.className = "px-3 py-1.5 rounded-lg transition-all duration-200 bg-white text-brand-600 shadow-sm font-semibold";
-                btnMahasiswa.className = "px-3 py-1.5 rounded-lg transition-all duration-200 text-slate-600 hover:text-slate-900";
-                viewDosen.classList.remove('hidden');
-                viewMahasiswa.classList.add('hidden');
-                renderAdminDashboard();
-            }
-        }
-
-        // Switch Admin Tabs
-        function switchAdminTab(tabName) {
-            appState.activeTab = tabName;
-            document.querySelectorAll('.admin-tab-btn').forEach(btn => {
-                btn.className = "admin-tab-btn py-3 px-1 border-b-2 font-medium text-sm flex items-center gap-2 border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300";
-            });
-
-            document.getElementById('admin-tab-session').classList.add('hidden');
-            document.getElementById('admin-tab-master').classList.add('hidden');
-            document.getElementById('admin-tab-recap').classList.add('hidden');
-            document.getElementById('admin-tab-gas').classList.add('hidden');
-
-            const activeBtn = document.getElementById(`tab-btn-${tabName}`);
-            const activeTabContent = document.getElementById(`admin-tab-${tabName}`);
-
-            if(activeBtn) activeBtn.className = "admin-tab-btn py-3 px-1 border-b-2 font-medium text-sm flex items-center gap-2 border-brand-600 text-brand-600";
-            if(activeTabContent) activeTabContent.classList.remove('hidden');
-
-            if(tabName === 'master') renderMasterTable();
-            if(tabName === 'recap') renderRecapTable();
-        }
-
-        // Dynamic Time Status Engine
-        function evaluateSessionStatus() {
-            const activeSession = appState.sessions.find(s => s.id === appState.activeSessionId);
-            if (!activeSession) return { isOpen: false, statusText: 'Sesi Tidak Ditemukan', code: 'CLOSED' };
-
-            if (activeSession.forceStatus === 'open') {
-                return { isOpen: true, statusText: 'DIBUKA (Manual)', code: 'OPEN', isLate: false };
-            }
-            if (activeSession.forceStatus === 'close') {
-                return { isOpen: false, statusText: 'DITUTUP (Manual)', code: 'CLOSED', isLate: false };
-            }
-
-            // Automatic calculation based on time
-            const now = new Date();
-            const [startH, startM] = activeSession.startTime.split(':').map(Number);
-            const [endH, endM] = activeSession.endTime.split(':').map(Number);
-
-            const startTimeDate = new Date();
-            startTimeDate.setHours(startH, startM, 0, 0);
-
-            const endTimeDate = new Date();
-            endTimeDate.setHours(endH, endM, 0, 0);
-
-            const lateThresholdDate = new Date(startTimeDate.getTime() + (activeSession.lateMinutes * 60000));
-
-            if (now < startTimeDate) {
-                return { isOpen: false, statusText: 'BELUM DIBUKA', code: 'NOT_STARTED', isLate: false };
-            } else if (now > endTimeDate) {
-                return { isOpen: false, statusText: 'DITUTUP (Waktu Habis)', code: 'CLOSED', isLate: false };
-            } else {
-                const isLate = now > lateThresholdDate;
-                return { 
-                    isOpen: true, 
-                    statusText: isLate ? 'DIBUKA (Toleransi Terlambat)' : 'DIBUKA', 
-                    code: 'OPEN', 
-                    isLate: isLate 
-                };
-            }
-        }
-
-        // Update Student View UI
-        function updateUI() {
-            const activeSession = appState.sessions.find(s => s.id === appState.activeSessionId) || appState.sessions[0];
-            const evalStatus = evaluateSessionStatus();
-
-            // Student session card text
-            document.getElementById('student-session-title').textContent = activeSession.title;
-            document.getElementById('student-session-start').textContent = `${activeSession.startTime} WIB`;
-            document.getElementById('student-session-end').textContent = `${activeSession.endTime} WIB`;
-            document.getElementById('student-session-late').textContent = `+${activeSession.lateMinutes} Menit`;
-
-            const badgeEl = document.getElementById('student-session-badge');
-            if (evalStatus.isOpen) {
-                badgeEl.className = "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 mb-3";
-                badgeEl.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span> Presensi ${evalStatus.statusText}`;
-            } else {
-                badgeEl.className = "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-rose-100 text-rose-800 mb-3";
-                badgeEl.innerHTML = `<span class="w-2 h-2 rounded-full bg-rose-500"></span> Presensi ${evalStatus.statusText}`;
-            }
-
-            // Sample NIM Pills
-            const samplePillsEl = document.getElementById('sample-nim-pills');
-            samplePillsEl.innerHTML = appState.students.slice(0, 5).map(s => `
-                <button type="button" onclick="fillNim('${s.nim}')" class="px-2.5 py-1 bg-white hover:bg-amber-100 border border-amber-300 rounded-md font-mono text-xs text-amber-900 transition shadow-sm">
-                    ${s.nim} (${s.name.split(' ')[0]})
+    <!-- MODAL 1: Login & Pengaturan Sekretaris -->
+    <div id="modal-admin" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden">
+            <div class="bg-slate-900 text-white p-6 flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 rounded-xl bg-brand-600 flex items-center justify-center font-bold">
+                        <i class="fa-solid fa-sliders text-white"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-lg">Pengaturan Sesi Absensi</h3>
+                        <p class="text-xs text-slate-400">Akun Sekretaris: dairyfindi@gmail.com</p>
+                    </div>
+                </div>
+                <button onclick="closeAdminModal()" class="text-slate-400 hover:text-white transition text-xl">
+                    <i class="fa-solid fa-xmark"></i>
                 </button>
-            `).join('');
-        }
+            </div>
 
-        function fillNim(nim) {
-            document.getElementById('input-nim').value = nim;
-        }
+            <div class="p-6 space-y-5 max-h-[80vh] overflow-y-auto">
+                <div class="space-y-3 p-4 bg-slate-50 rounded-xl border border-slate-200">
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider">Verifikasi Akun Sekretaris</label>
+                    <input type="email" id="input-admin-email" value="dairyfindi@gmail.com" readonly 
+                        class="w-full px-3 py-2 bg-slate-200 border border-slate-300 rounded-lg text-slate-600 text-sm font-mono cursor-not-allowed">
+                    <input type="password" id="input-admin-pass" placeholder="PIN / Sandi Admin (Default: 1234)" 
+                        class="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-500">
+                </div>
 
-        // Handle Student Attendance Submit
-        function handleAttendanceSubmit(e) {
-            e.preventDefault();
-            const nimInput = document.getElementById('input-nim').value.trim();
-            const resultBox = document.getElementById('attendance-result');
-            const evalStatus = evaluateSessionStatus();
+                <hr class="border-slate-100">
 
-            resultBox.classList.remove('hidden');
-
-            // 1. Check if session is open
-            if (!evalStatus.isOpen) {
-                resultBox.innerHTML = `
-                    <div class="p-4 bg-rose-50 border border-rose-200 rounded-xl flex items-start gap-3 text-rose-800 text-xs">
-                        <i data-lucide="x-circle" class="w-5 h-5 text-rose-600 flex-shrink-0 mt-0.5"></i>
+                <div class="space-y-4">
+                    <h4 class="font-bold text-slate-900 text-sm">1. Atur Pertemuan Ke- & Jam Operasional</h4>
+                    
+                    <div class="grid grid-cols-2 gap-4">
                         <div>
-                            <p class="font-bold text-sm">Absensi Gagal</p>
-                            <p class="mt-1">Sesi absensi untuk pertemuan ini sedang **${evalStatus.statusText}**. Anda tidak dapat melakukan absensi saat ini.</p>
-                        </div>
-                    </div>
-                `;
-                lucide.createIcons();
-                return;
-            }
-
-            // 2. Validate NIM against Master Data
-            const student = appState.students.find(s => s.nim === nimInput);
-            if (!student) {
-                resultBox.innerHTML = `
-                    <div class="p-4 bg-amber-50 border border-amber-200 rounded-xl flex items-start gap-3 text-amber-900 text-xs">
-                        <i data-lucide="alert-triangle" class="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5"></i>
-                        <div>
-                            <p class="font-bold text-sm">NIM Tidak Terdaftar</p>
-                            <p class="mt-1">Nomor Induk Mahasiswa <strong>"${nimInput}"</strong> tidak ditemukan pada master data. Silakan hubungi dosen/admin.</p>
-                        </div>
-                    </div>
-                `;
-                lucide.createIcons();
-                return;
-            }
-
-            // 3. Check duplicate attendance for this meeting
-            const existing = appState.attendances.find(a => a.sessionId === appState.activeSessionId && a.nim === student.nim);
-            if (existing) {
-                const timeRecorded = new Date(existing.timestamp).toLocaleTimeString('id-ID');
-                resultBox.innerHTML = `
-                    <div class="p-4 bg-sky-50 border border-sky-200 rounded-xl flex items-start gap-3 text-sky-900 text-xs">
-                        <i data-lucide="info" class="w-5 h-5 text-sky-600 flex-shrink-0 mt-0.5"></i>
-                        <div>
-                            <p class="font-bold text-sm">Anda Sudah Melakukan Absen</p>
-                            <p class="mt-1">NIM <strong>${student.nim} (${student.name})</strong> sudah tercatat absen pada pukul <strong>${timeRecorded} WIB</strong> dengan status <span class="font-bold">${existing.status}</span>.</p>
-                        </div>
-                    </div>
-                `;
-                lucide.createIcons();
-                return;
-            }
-
-            // 4. Record Attendance Success
-            const recordStatus = evalStatus.isLate ? 'TERLAMBAT' : 'HADIR';
-            const now = new Date();
-            const newRecord = {
-                id: 'att-' + Date.now(),
-                sessionId: appState.activeSessionId,
-                nim: student.nim,
-                timestamp: now.toISOString(),
-                status: recordStatus
-            };
-
-            appState.attendances.push(newRecord);
-            saveToLocalStorage();
-
-            const timeFormatted = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) + ' WIB';
-
-            resultBox.innerHTML = `
-                <div class="p-5 ${recordStatus === 'HADIR' ? 'bg-emerald-50 border-emerald-200 text-emerald-900' : 'bg-amber-50 border-amber-200 text-amber-900'} border rounded-2xl space-y-3">
-                    <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 rounded-full ${recordStatus === 'HADIR' ? 'bg-emerald-500' : 'bg-amber-500'} text-white flex items-center justify-center font-bold">
-                            <i data-lucide="check" class="w-6 h-6"></i>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Pertemuan Ke-</label>
+                            <input type="number" id="setting-pertemuan" min="1" max="50" value="1"
+                                class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-sm font-bold text-slate-800">
                         </div>
                         <div>
-                            <h4 class="font-bold text-base">Presensi Berhasil Dicatat!</h4>
-                            <p class="text-xs opacity-90">${timeFormatted}</p>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Status Sesi</label>
+                            <select id="setting-status-sesi" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-sm font-semibold">
+                                <option value="OPEN">BUKA (Sesuai Jam)</option>
+                                <option value="CLOSED">TUTUP PAKSA</option>
+                            </select>
                         </div>
                     </div>
 
-                    <div class="bg-white/80 backdrop-blur-sm p-3 rounded-xl border border-slate-200/50 text-xs space-y-1 text-slate-800">
-                        <div class="flex justify-between">
-                            <span class="text-slate-500">Nama Mahasiswa:</span>
-                            <span class="font-bold">${student.name}</span>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Jam Buka Absen</label>
+                            <input type="time" id="setting-jam-buka" value="08:00"
+                                class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-sm font-mono">
                         </div>
-                        <div class="flex justify-between">
-                            <span class="text-slate-500">NIM:</span>
-                            <span class="font-mono font-semibold">${student.nim}</span>
-                        </div>
-                        <div class="flex justify-between">
-                            <span class="text-slate-500">Status Kehadiran:</span>
-                            <span class="font-bold ${recordStatus === 'HADIR' ? 'text-emerald-600' : 'text-amber-600'}">${recordStatus}</span>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Jam Tutup Absen</label>
+                            <input type="time" id="setting-jam-tutup" value="10:00"
+                                class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-sm font-mono">
                         </div>
                     </div>
                 </div>
-            `;
 
-            document.getElementById('input-nim').value = '';
-            lucide.createIcons();
-            showToast(`Berhasil absen: ${student.name}`, 'success');
-        }
+                <hr class="border-slate-100">
 
-        // Render Admin Dashboard
-        function renderAdminDashboard() {
-            // Populate Session Select Box
-            const selectEl = document.getElementById('select-session-id');
-            selectEl.innerHTML = appState.sessions.map(s => `
-                <option value="${s.id}" ${s.id === appState.activeSessionId ? 'selected' : ''}>
-                    ${s.title}
-                </option>
-            `).join('');
+                <div class="space-y-3">
+                    <h4 class="font-bold text-slate-900 text-sm">2. Google Apps Script Web App URL</h4>
+                    <input type="url" id="setting-script-url" placeholder="https://script.google.com/macros/s/.../exec" 
+                        class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs font-mono text-slate-800 focus:ring-2 focus:ring-brand-500">
+                </div>
+            </div>
 
-            loadSelectedSessionToForm();
-            updateAdminSummaryCard();
-            document.getElementById('count-master-students').textContent = appState.students.length;
-        }
+            <div class="p-4 bg-slate-50 border-t border-slate-200 flex items-center justify-end space-x-3">
+                <button onclick="closeAdminModal()" class="px-4 py-2 text-sm font-semibold text-slate-600 hover:text-slate-800">Batal</button>
+                <button onclick="saveAdminSettings()" class="px-5 py-2 text-sm font-semibold bg-brand-600 hover:bg-brand-700 text-white rounded-xl shadow-md transition">Simpan Perubahan</button>
+            </div>
+        </div>
+    </div>
 
-        function loadSelectedSessionToForm() {
-            const selectEl = document.getElementById('select-session-id');
-            const selectedId = parseInt(selectEl.value);
-            const session = appState.sessions.find(s => s.id === selectedId);
+    <!-- MODAL 2: Master Data Mahasiswa -->
+    <div id="modal-master-data" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full overflow-hidden">
+            <div class="bg-slate-900 text-white p-6 flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 rounded-xl bg-emerald-600 flex items-center justify-center font-bold">
+                        <i class="fa-solid fa-users text-white"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-lg">Kelola Master Data Mahasiswa</h3>
+                        <p class="text-xs text-slate-400">Database NIM & Nama Mahasiswa</p>
+                    </div>
+                </div>
+                <button onclick="closeMasterDataModal()" class="text-slate-400 hover:text-white transition text-xl">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
 
-            if (session) {
-                document.getElementById('cfg-session-title').value = session.title;
-                document.getElementById('cfg-start-time').value = session.startTime;
-                document.getElementById('cfg-end-time').value = session.endTime;
-                document.getElementById('cfg-late-minutes').value = session.lateMinutes;
+            <div class="p-6 space-y-6 max-h-[75vh] overflow-y-auto">
+                <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <input type="text" id="add-nim" placeholder="NIM Mahasiswa" class="px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm font-mono">
+                    <input type="text" id="add-nama" placeholder="Nama Mahasiswa" class="px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm">
+                    <button onclick="addSingleStudent()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm px-4 py-2 rounded-lg transition flex items-center justify-center gap-1">
+                        <i class="fa-solid fa-plus"></i> Tambah Data
+                    </button>
+                </div>
 
-                const forceRadios = document.getElementsByName('forceStatus');
-                forceRadios.forEach(r => {
-                    r.checked = (r.value === session.forceStatus);
-                });
-            }
-        }
+                <div class="overflow-x-auto border border-slate-200 rounded-xl">
+                    <table class="w-full text-sm text-left text-slate-600">
+                        <thead class="text-xs text-slate-700 uppercase bg-slate-100 border-b border-slate-200">
+                            <tr>
+                                <th class="px-4 py-3">No</th>
+                                <th class="px-4 py-3">NIM</th>
+                                <th class="px-4 py-3">Nama Mahasiswa</th>
+                                <th class="px-4 py-3 text-center">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="table-master-students" class="divide-y divide-slate-100"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
 
-        function saveSessionConfig(e) {
-            e.preventDefault();
-            const selectedId = parseInt(document.getElementById('select-session-id').value);
-            const sessionIndex = appState.sessions.findIndex(s => s.id === selectedId);
+    <!-- MODAL 3: Rekapitulasi Sesi -->
+    <div id="modal-rekap" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-4xl w-full overflow-hidden">
+            <div class="bg-slate-900 text-white p-6 flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 rounded-xl bg-amber-500 flex items-center justify-center font-bold">
+                        <i class="fa-solid fa-table text-white"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-lg">Rekapitulasi Absensi Per Pertemuan</h3>
+                        <p class="text-xs text-slate-400">Ringkasan Kehadiran Mahasiswa</p>
+                    </div>
+                </div>
+                <button onclick="closeRekapModal()" class="text-slate-400 hover:text-white transition text-xl">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
 
-            if (sessionIndex !== -1) {
-                const forceRadios = document.getElementsByName('forceStatus');
-                let forceVal = 'auto';
-                forceRadios.forEach(r => { if (r.checked) forceVal = r.value; });
+            <div class="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
+                <div class="flex flex-col sm:flex-row items-center justify-between gap-4 bg-slate-50 p-4 rounded-xl border border-slate-200">
+                    <div class="flex items-center gap-3">
+                        <label class="text-sm font-bold text-slate-700">Pilih Pertemuan:</label>
+                        <select id="select-rekap-pertemuan" onchange="renderRekapTable()" class="px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-sm font-semibold"></select>
+                    </div>
+                    <button onclick="exportRekapCSV()" class="bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold py-2 px-4 rounded-lg transition flex items-center gap-2">
+                        <i class="fa-solid fa-file-excel text-emerald-400"></i> Ekspor CSV
+                    </button>
+                </div>
 
-                appState.sessions[sessionIndex].title = document.getElementById('cfg-session-title').value;
-                appState.sessions[sessionIndex].startTime = document.getElementById('cfg-start-time').value;
-                appState.sessions[sessionIndex].endTime = document.getElementById('cfg-end-time').value;
-                appState.sessions[sessionIndex].lateMinutes = parseInt(document.getElementById('cfg-late-minutes').value) || 0;
-                appState.sessions[sessionIndex].forceStatus = forceVal;
+                <div class="overflow-x-auto border border-slate-200 rounded-xl">
+                    <table class="w-full text-sm text-left text-slate-600">
+                        <thead class="text-xs text-slate-700 uppercase bg-slate-100 border-b border-slate-200">
+                            <tr>
+                                <th class="px-4 py-3">No</th>
+                                <th class="px-4 py-3">Waktu Absen</th>
+                                <th class="px-4 py-3">NIM</th>
+                                <th class="px-4 py-3">Nama Mahasiswa</th>
+                                <th class="px-4 py-3 text-center">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="table-rekap-body" class="divide-y divide-slate-100"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
 
-                appState.activeSessionId = selectedId;
-                saveToLocalStorage();
-                updateUI();
-                updateAdminSummaryCard();
-                showToast('Pengaturan sesi berhasil diperbarui', 'success');
-            }
-        }
+    <!-- Notification Toast -->
+    <div id="toast-notification" class="fixed bottom-5 right-5 z-50 transform translate-y-20 opacity-0 transition-all duration-300 max-w-md bg-slate-900 text-white p-4 rounded-xl shadow-2xl border border-slate-700 flex items-start gap-3">
+        <div id="toast-icon" class="text-emerald-400 text-xl mt-0.5"><i class="fa-solid fa-circle-check"></i></div>
+        <div class="flex-grow">
+            <h5 id="toast-title" class="font-bold text-sm">Notifikasi</h5>
+            <p id="toast-message" class="text-xs text-slate-300 mt-0.5">Pesan berhasil dikirim.</p>
+        </div>
+        <button onclick="hideToast()" class="text-slate-500 hover:text-slate-300 text-sm"><i class="fa-solid fa-xmark"></i></button>
+    </div>
 
-        function updateAdminSummaryCard() {
-            const activeSession = appState.sessions.find(s => s.id === appState.activeSessionId);
-            const evalStatus = evaluateSessionStatus();
-
-            document.getElementById('admin-active-title').textContent = activeSession ? activeSession.title : '-';
-            document.getElementById('admin-active-status').textContent = evalStatus.statusText;
-            document.getElementById('admin-active-status').className = evalStatus.isOpen ? "font-semibold text-emerald-400" : "font-semibold text-rose-400";
+    <!-- JavaScript Logic -->
+    <script>
+        let state = {
+            adminEmail: 'dairyfindi@gmail.com',
+            adminPIN: '1234',
+            pertemuan: 1,
+            jamBuka: '08:00',
+            jamTutup: '10:00',
+            statusSesi: 'OPEN',
+            scriptURL: localStorage.getItem('absensi_script_url') || '',
             
-            if(activeSession) {
-                document.getElementById('admin-active-range').textContent = `${activeSession.startTime} - ${activeSession.endTime}`;
-                document.getElementById('admin-active-tolerance').textContent = `+${activeSession.lateMinutes} Menit`;
+            masterStudents: JSON.parse(localStorage.getItem('absensi_master_students')) || [
+                { nim: '2415051074', nama: 'Gede Pasek Ary Sugiantara' },
+                { nim: '2415051001', nama: 'Agus Adrian Satria Ananta' },
+                { nim: '2415051002', nama: 'I Kadek Agus Mertha Kusuma' }
+            ],
+
+            logs: JSON.parse(localStorage.getItem('absensi_logs')) || []
+        };
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loadSavedSettings();
+            updateBannerUI();
+            startCountdownTimer();
+            renderRecentLogs();
+            checkScriptURLStatus();
+        });
+
+        function loadSavedSettings() {
+            const saved = localStorage.getItem('absensi_settings');
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                state.pertemuan = parsed.pertemuan || 1;
+                state.jamBuka = parsed.jamBuka || '08:00';
+                state.jamTutup = parsed.jamTutup || '10:00';
+                state.statusSesi = parsed.statusSesi || 'OPEN';
             }
-
-            const activeAttCount = appState.attendances.filter(a => a.sessionId === appState.activeSessionId).length;
-            document.getElementById('admin-active-count').textContent = `${activeAttCount} / ${appState.students.length}`;
         }
 
-        function addNewSessionPrompt() {
-            const nextId = appState.sessions.length + 1;
-            const newSession = {
-                id: nextId,
-                title: `Pertemuan ${nextId}: Topik Baru`,
-                startTime: "08:00",
-                endTime: "10:00",
-                lateMinutes: 15,
-                forceStatus: "auto"
-            };
-            appState.sessions.push(newSession);
-            appState.activeSessionId = nextId;
-            saveToLocalStorage();
-            renderAdminDashboard();
-            showToast(`Pertemuan ${nextId} berhasil dibuat`, 'success');
+        function saveStateToStorage() {
+            localStorage.setItem('absensi_settings', JSON.stringify({
+                pertemuan: state.pertemuan,
+                jamBuka: state.jamBuka,
+                jamTutup: state.jamTutup,
+                statusSesi: state.statusSesi
+            }));
+            localStorage.setItem('absensi_master_students', JSON.stringify(state.masterStudents));
+            localStorage.setItem('absensi_logs', JSON.stringify(state.logs));
+            if (state.scriptURL) {
+                localStorage.setItem('absensi_script_url', state.scriptURL);
+            }
         }
 
-        // Render Master Data Table
-        function renderMasterTable() {
-            const tbody = document.getElementById('master-student-tbody');
-            const searchQuery = document.getElementById('search-student').value.toLowerCase();
+        function updateBannerUI() {
+            document.getElementById('display-pertemuan').innerText = `Pertemuan Ke-${state.pertemuan}`;
+            document.getElementById('display-jam-operasional').innerText = `${state.jamBuka} - ${state.jamTutup} WITA`;
+            document.getElementById('text-active-sheet-target').innerText = `"Pertemuan ${state.pertemuan}"`;
+            
+            document.getElementById('setting-pertemuan').value = state.pertemuan;
+            document.getElementById('setting-jam-buka').value = state.jamBuka;
+            document.getElementById('setting-jam-tutup').value = state.jamTutup;
+            document.getElementById('setting-status-sesi').value = state.statusSesi;
+            document.getElementById('setting-script-url').value = state.scriptURL;
+        }
 
-            const filtered = appState.students.filter(s => 
-                s.nim.toLowerCase().includes(searchQuery) || s.name.toLowerCase().includes(searchQuery)
-            );
+        function checkScriptURLStatus() {
+            const ind = document.getElementById('indicator-sheet-status');
+            if (state.scriptURL && state.scriptURL.trim().startsWith('https://script.google.com')) {
+                ind.className = 'w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping';
+            } else {
+                ind.className = 'w-2.5 h-2.5 rounded-full bg-amber-400';
+            }
+        }
 
-            if (filtered.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="4" class="py-8 text-center text-slate-400">Data mahasiswa tidak ditemukan.</td></tr>`;
+        function startCountdownTimer() {
+            setInterval(() => {
+                const now = new Date();
+                const [bukaH, bukaM] = state.jamBuka.split(':').map(Number);
+                const [tutupH, tutupM] = state.jamTutup.split(':').map(Number);
+
+                const timeBuka = new Date(now.getFullYear(), now.getMonth(), now.getDate(), bukaH, bukaM, 0);
+                const timeTutup = new Date(now.getFullYear(), now.getMonth(), now.getDate(), tutupH, tutupM, 0);
+
+                const timerEl = document.getElementById('countdown-timer');
+                const statusBadgeEl = document.getElementById('badge-session-status');
+                const timerStatusText = document.getElementById('timer-status-text');
+                const submitBtn = document.getElementById('btn-submit-absen');
+
+                if (state.statusSesi === 'CLOSED') {
+                    timerEl.innerText = "00:00:00";
+                    timerStatusText.innerText = "Sesi Ditutup Sekretaris";
+                    statusBadgeEl.className = "px-3 py-1 text-xs font-semibold rounded-full bg-rose-500/20 text-rose-100 border border-rose-400/30 flex items-center gap-1.5";
+                    statusBadgeEl.innerHTML = `<span class="w-2 h-2 rounded-full bg-rose-400"></span> Sesi Ditutup`;
+                    submitBtn.disabled = true;
+                    return;
+                }
+
+                if (now < timeBuka) {
+                    const diff = timeBuka - now;
+                    timerEl.innerText = formatTimeDiff(diff);
+                    timerStatusText.innerText = "Sesi Belum Dibuka";
+                    statusBadgeEl.className = "px-3 py-1 text-xs font-semibold rounded-full bg-amber-500/20 text-amber-100 border border-amber-400/30 flex items-center gap-1.5";
+                    statusBadgeEl.innerHTML = `<span class="w-2 h-2 rounded-full bg-amber-400"></span> Belum Buka`;
+                    submitBtn.disabled = true;
+                } else if (now >= timeBuka && now <= timeTutup) {
+                    const diff = timeTutup - now;
+                    timerEl.innerText = formatTimeDiff(diff);
+                    timerStatusText.innerText = "Sisa Waktu Presensi";
+                    statusBadgeEl.className = "px-3 py-1 text-xs font-semibold rounded-full bg-emerald-500/20 text-emerald-100 border border-emerald-400/30 flex items-center gap-1.5";
+                    statusBadgeEl.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> Sesi Aktif`;
+                    submitBtn.disabled = false;
+                } else {
+                    timerEl.innerText = "00:00:00";
+                    timerStatusText.innerText = "Waktu Absen Telah Habis";
+                    statusBadgeEl.className = "px-3 py-1 text-xs font-semibold rounded-full bg-rose-500/20 text-rose-100 border border-rose-400/30 flex items-center gap-1.5";
+                    statusBadgeEl.innerHTML = `<span class="w-2 h-2 rounded-full bg-rose-400"></span> Waktu Habis`;
+                    submitBtn.disabled = true;
+                }
+            }, 1000);
+        }
+
+        function formatTimeDiff(ms) {
+            const totalSec = Math.floor(ms / 1000);
+            const hrs = Math.floor(totalSec / 3600);
+            const mins = Math.floor((totalSec % 3600) / 60);
+            const secs = totalSec % 60;
+            return `${String(hrs).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+        }
+
+        function autoCheckNIM() {
+            const inputNIM = document.getElementById('input-nim').value.trim();
+            const boxDetected = document.getElementById('box-detected-name');
+            const boxManual = document.getElementById('box-manual-name');
+            const textName = document.getElementById('text-detected-name');
+
+            if (!inputNIM) {
+                boxDetected.classList.add('hidden');
+                boxManual.classList.add('hidden');
                 return;
             }
 
-            tbody.innerHTML = filtered.map((s, idx) => `
+            const found = state.masterStudents.find(s => s.nim.toString().trim() === inputNIM);
+            if (found) {
+                textName.innerText = found.nama;
+                boxDetected.classList.remove('hidden');
+                boxManual.classList.add('hidden');
+            } else {
+                boxDetected.classList.add('hidden');
+                boxManual.classList.remove('hidden');
+            }
+        }
+
+        async function handleFormSubmit(e) {
+            e.preventDefault();
+            const nim = document.getElementById('input-nim').value.trim();
+            let nama = '';
+
+            const found = state.masterStudents.find(s => s.nim.toString().trim() === nim);
+            if (found) {
+                nama = found.nama;
+            } else {
+                nama = document.getElementById('input-nama-manual').value.trim();
+                if (!nama) {
+                    showToast('Data Kurang', 'Silakan masukkan Nama Lengkap Anda.', 'amber');
+                    return;
+                }
+            }
+
+            const duplicate = state.logs.find(l => l.pertemuan === state.pertemuan && l.nim === nim);
+            if (duplicate) {
+                showToast('Sudah Absen', `NIM ${nim} (${nama}) sudah tercatat absen pada Pertemuan Ke-${state.pertemuan}.`, 'amber');
+                return;
+            }
+
+            const nowStr = new Date().toLocaleString('id-ID');
+            const submitBtn = document.getElementById('btn-submit-absen');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> <span>Mengirim ke Spreadsheet...</span>`;
+
+            const payload = {
+                action: 'absen',
+                nim: nim,
+                nama: nama,
+                pertemuan: `Pertemuan ${state.pertemuan}`,
+                timestamp: nowStr
+            };
+
+            if (state.scriptURL && state.scriptURL.trim() !== '') {
+                try {
+                    await fetch(state.scriptURL, {
+                        method: 'POST',
+                        mode: 'no-cors',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                } catch (err) {
+                    console.error('Spreadsheet Error:', err);
+                }
+            }
+
+            state.logs.unshift({
+                pertemuan: state.pertemuan,
+                nim: nim,
+                nama: nama,
+                timestamp: nowStr,
+                status: 'Hadir'
+            });
+
+            if (!found && nama) {
+                state.masterStudents.push({ nim: nim, nama: nama });
+            }
+
+            saveStateToStorage();
+            renderRecentLogs();
+
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = `<i class="fa-solid fa-paper-plane"></i> <span>Kirim Absensi Sekarang</span>`;
+
+            document.getElementById('form-presensi').reset();
+            document.getElementById('box-detected-name').classList.add('hidden');
+            document.getElementById('box-manual-name').classList.add('hidden');
+
+            showToast('Absensi Berhasil!', `Kehadiran ${nama} (${nim}) telah dicatat pada Pertemuan Ke-${state.pertemuan}.`, 'emerald');
+        }
+
+        function renderRecentLogs() {
+            const tbody = document.getElementById('table-recent-logs');
+            const currentMeetingLogs = state.logs.filter(l => l.pertemuan === state.pertemuan);
+            
+            document.getElementById('text-total-hadir').innerText = `Total Sesi Ini: ${currentMeetingLogs.length} Mahasiswa`;
+
+            if (currentMeetingLogs.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="4" class="px-4 py-6 text-center text-slate-400">Belum ada mahasiswa yang absen pada Pertemuan Ke-${state.pertemuan}.</td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = currentMeetingLogs.map(l => `
                 <tr class="hover:bg-slate-50 transition">
-                    <td class="py-3 px-4 text-slate-400">${idx + 1}</td>
-                    <td class="py-3 px-4 font-mono font-semibold text-slate-900">${s.nim}</td>
-                    <td class="py-3 px-4 font-medium">${s.name}</td>
-                    <td class="py-3 px-4 text-right space-x-1">
-                        <button onclick="editStudent('${s.nim}')" class="p-1.5 hover:bg-slate-200 text-slate-600 rounded-lg transition" title="Edit">
-                            <i data-lucide="edit-3" class="w-4 h-4"></i>
-                        </button>
-                        <button onclick="deleteStudent('${s.nim}')" class="p-1.5 hover:bg-rose-100 text-rose-600 rounded-lg transition" title="Hapus">
-                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                    <td class="px-4 py-3 text-xs font-mono text-slate-500">${l.timestamp.split(',')[1] || l.timestamp}</td>
+                    <td class="px-4 py-3 font-mono font-semibold text-slate-800">${l.nim}</td>
+                    <td class="px-4 py-3 font-medium text-slate-900">${l.nama}</td>
+                    <td class="px-4 py-3 text-center">
+                        <span class="px-2.5 py-0.5 text-xs font-bold bg-emerald-100 text-emerald-800 rounded-full">Hadir</span>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function openAdminModal() { document.getElementById('modal-admin').classList.remove('hidden'); }
+        function closeAdminModal() { document.getElementById('modal-admin').classList.add('hidden'); }
+
+        function saveAdminSettings() {
+            const pass = document.getElementById('input-admin-pass').value;
+            if (pass !== state.adminPIN && pass !== '') {
+                showToast('Akses Ditolak', 'PIN Sekretaris salah! (Default: 1234)', 'rose');
+                return;
+            }
+
+            state.pertemuan = parseInt(document.getElementById('setting-pertemuan').value) || 1;
+            state.jamBuka = document.getElementById('setting-jam-buka').value;
+            state.jamTutup = document.getElementById('setting-jam-tutup').value;
+            state.statusSesi = document.getElementById('setting-status-sesi').value;
+            state.scriptURL = document.getElementById('setting-script-url').value.trim();
+
+            saveStateToStorage();
+            updateBannerUI();
+            checkScriptURLStatus();
+            renderRecentLogs();
+            closeAdminModal();
+            showToast('Pengaturan Disimpan', 'Konfigurasi sesi sekretaris berhasil diperbarui.', 'emerald');
+        }
+
+        function openMasterDataModal() { renderMasterStudentTable(); document.getElementById('modal-master-data').classList.remove('hidden'); }
+        function closeMasterDataModal() { document.getElementById('modal-master-data').classList.add('hidden'); }
+
+        function renderMasterStudentTable() {
+            const tbody = document.getElementById('table-master-students');
+            tbody.innerHTML = state.masterStudents.map((s, idx) => `
+                <tr class="hover:bg-slate-50">
+                    <td class="px-4 py-2.5 text-xs text-slate-400 font-mono">${idx + 1}</td>
+                    <td class="px-4 py-2.5 font-mono font-semibold text-slate-800">${s.nim}</td>
+                    <td class="px-4 py-2.5 font-medium text-slate-900">${s.nama}</td>
+                    <td class="px-4 py-2.5 text-center">
+                        <button onclick="removeStudent(${idx})" class="text-rose-500 hover:text-rose-700 text-xs px-2 py-1 rounded">
+                            <i class="fa-solid fa-trash-can"></i>
                         </button>
                     </td>
                 </tr>
             `).join('');
-
-            lucide.createIcons();
-            document.getElementById('count-master-students').textContent = appState.students.length;
         }
 
-        // Add/Edit Student Modals
-        function openAddStudentModal() {
-            openModal(`
-                <h3 class="text-base font-bold text-slate-900 mb-4">Tambah Mahasiswa Baru</h3>
-                <form onsubmit="saveNewStudent(event)" class="space-y-4">
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-700 mb-1">NIM Mahasiswa</label>
-                        <input type="text" id="new-nim" required class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-500">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-700 mb-1">Nama Lengkap</label>
-                        <input type="text" id="new-name" required class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-500">
-                    </div>
-                    <div class="flex justify-end gap-2 pt-2">
-                        <button type="button" onclick="closeModal()" class="px-4 py-2 bg-slate-100 text-slate-700 font-semibold text-xs rounded-xl">Batal</button>
-                        <button type="submit" class="px-4 py-2 bg-brand-600 text-white font-semibold text-xs rounded-xl">Simpan</button>
-                    </div>
-                </form>
-            `);
+        function addSingleStudent() {
+            const nim = document.getElementById('add-nim').value.trim();
+            const nama = document.getElementById('add-nama').value.trim();
+            if (!nim || !nama) { showToast('Input Kurang', 'Isi NIM dan Nama Mahasiswa.', 'amber'); return; }
+            state.masterStudents.push({ nim: nim, nama: nama });
+            saveStateToStorage();
+            renderMasterStudentTable();
+            document.getElementById('add-nim').value = '';
+            document.getElementById('add-nama').value = '';
+            showToast('Data Ditambahkan', `${nama} (${nim}) ditambahkan ke master data.`, 'emerald');
         }
 
-        function saveNewStudent(e) {
-            e.preventDefault();
-            const nim = document.getElementById('new-nim').value.trim();
-            const name = document.getElementById('new-name').value.trim();
+        function removeStudent(idx) {
+            state.masterStudents.splice(idx, 1);
+            saveStateToStorage();
+            renderMasterStudentTable();
+        }
 
-            if (appState.students.some(s => s.nim === nim)) {
-                showToast('NIM sudah ada di database', 'error');
+        function openRekapModal() { populateRekapSelectOptions(); renderRekapTable(); document.getElementById('modal-rekap').classList.remove('hidden'); }
+        function closeRekapModal() { document.getElementById('modal-rekap').classList.add('hidden'); }
+
+        function populateRekapSelectOptions() {
+            const select = document.getElementById('select-rekap-pertemuan');
+            let meetings = [...new Set(state.logs.map(l => l.pertemuan))];
+            if (!meetings.includes(state.pertemuan)) meetings.push(state.pertemuan);
+            meetings.sort((a,b) => a - b);
+
+            select.innerHTML = meetings.map(m => `
+                <option value="${m}" ${m === state.pertemuan ? 'selected' : ''}>Pertemuan Ke-${m}</option>
+            `).join('');
+        }
+
+        function renderRekapTable() {
+            const selectedMeeting = parseInt(document.getElementById('select-rekap-pertemuan').value);
+            const tbody = document.getElementById('table-rekap-body');
+            const filtered = state.logs.filter(l => l.pertemuan === selectedMeeting);
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" class="px-4 py-6 text-center text-slate-400">Belum ada rekap data pada Pertemuan Ke-${selectedMeeting}.</td></tr>`;
                 return;
             }
 
-            appState.students.push({ nim, name });
-            saveToLocalStorage();
-            renderMasterTable();
-            closeModal();
-            showToast('Mahasiswa berhasil ditambahkan', 'success');
+            tbody.innerHTML = filtered.map((l, idx) => `
+                <tr class="hover:bg-slate-50">
+                    <td class="px-4 py-3 text-xs text-slate-400 font-mono">${idx + 1}</td>
+                    <td class="px-4 py-3 text-xs font-mono text-slate-500">${l.timestamp}</td>
+                    <td class="px-4 py-3 font-mono font-semibold text-slate-800">${l.nim}</td>
+                    <td class="px-4 py-3 font-medium text-slate-900">${l.nama}</td>
+                    <td class="px-4 py-3 text-center"><span class="px-2.5 py-0.5 text-xs font-bold bg-emerald-100 text-emerald-800 rounded-full">Hadir</span></td>
+                </tr>
+            `).join('');
         }
 
-        function editStudent(nim) {
-            const student = appState.students.find(s => s.nim === nim);
-            if (!student) return;
+        function exportRekapCSV() {
+            const selectedMeeting = parseInt(document.getElementById('select-rekap-pertemuan').value);
+            const filtered = state.logs.filter(l => l.pertemuan === selectedMeeting);
+            if (filtered.length === 0) { showToast('Rekap Kosong', 'Tidak ada data untuk diekspor.', 'amber'); return; }
 
-            openModal(`
-                <h3 class="text-base font-bold text-slate-900 mb-4">Edit Data Mahasiswa</h3>
-                <form onsubmit="updateStudent(event, '${student.nim}')" class="space-y-4">
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-700 mb-1">NIM Mahasiswa</label>
-                        <input type="text" id="edit-nim" value="${student.nim}" required class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-500">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-700 mb-1">Nama Lengkap</label>
-                        <input type="text" id="edit-name" value="${student.name}" required class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-500">
-                    </div>
-                    <div class="flex justify-end gap-2 pt-2">
-                        <button type="button" onclick="closeModal()" class="px-4 py-2 bg-slate-100 text-slate-700 font-semibold text-xs rounded-xl">Batal</button>
-                        <button type="submit" class="px-4 py-2 bg-brand-600 text-white font-semibold text-xs rounded-xl">Perbarui</button>
-                    </div>
-                </form>
-            `);
-        }
-
-        function updateStudent(e, oldNim) {
-            e.preventDefault();
-            const newNim = document.getElementById('edit-nim').value.trim();
-            const newName = document.getElementById('edit-name').value.trim();
-
-            const idx = appState.students.findIndex(s => s.nim === oldNim);
-            if (idx !== -1) {
-                appState.students[idx] = { nim: newNim, name: newName };
-                saveToLocalStorage();
-                renderMasterTable();
-                closeModal();
-                showToast('Data mahasiswa berhasil diperbarui', 'success');
-            }
-        }
-
-        function deleteStudent(nim) {
-            openModal(`
-                <h3 class="text-base font-bold text-slate-900 mb-2">Konfirmasi Hapus</h3>
-                <p class="text-xs text-slate-600 mb-6">Apakah Anda yakin ingin menghapus mahasiswa dengan NIM <strong>${nim}</strong>?</p>
-                <div class="flex justify-end gap-2">
-                    <button onclick="closeModal()" class="px-4 py-2 bg-slate-100 text-slate-700 font-semibold text-xs rounded-xl">Batal</button>
-                    <button onclick="confirmDeleteStudent('${nim}')" class="px-4 py-2 bg-rose-600 text-white font-semibold text-xs rounded-xl">Ya, Hapus</button>
-                </div>
-            `);
-        }
-
-        function confirmDeleteStudent(nim) {
-            appState.students = appState.students.filter(s => s.nim !== nim);
-            saveToLocalStorage();
-            renderMasterTable();
-            closeModal();
-            showToast('Mahasiswa berhasil dihapus', 'success');
-        }
-
-        // Bulk Import Modal
-        function openImportModal() {
-            openModal(`
-                <h3 class="text-base font-bold text-slate-900 mb-2">Import Data Massal Mahasiswa</h3>
-                <p class="text-xs text-slate-500 mb-3">Masukkan format baris: <code>NIM,Nama Mahasiswa</code> (satu baris per mahasiswa)</p>
-                <textarea id="import-text" rows="6" placeholder="210101009,Rian Ardianto&#10;210101010,Siti Nurhaliza" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-3 text-xs font-mono outline-none focus:ring-2 focus:ring-brand-500"></textarea>
-                <div class="flex justify-end gap-2 pt-3">
-                    <button onclick="closeModal()" class="px-4 py-2 bg-slate-100 text-slate-700 font-semibold text-xs rounded-xl">Batal</button>
-                    <button onclick="processBulkImport()" class="px-4 py-2 bg-emerald-600 text-white font-semibold text-xs rounded-xl">Import Sekarang</button>
-                </div>
-            `);
-        }
-
-        function processBulkImport() {
-            const rawText = document.getElementById('import-text').value.trim();
-            if(!rawText) return;
-
-            const lines = rawText.split('\n');
-            let addedCount = 0;
-
-            lines.forEach(line => {
-                const parts = line.split(',');
-                if(parts.length >= 2) {
-                    const nim = parts[0].trim();
-                    const name = parts.slice(1).join(',').trim();
-                    if(nim && name && !appState.students.some(s => s.nim === nim)) {
-                        appState.students.push({ nim, name });
-                        addedCount++;
-                    }
-                }
+            let csv = "No,Timestamp,NIM,Nama Mahasiswa,Status\n";
+            filtered.forEach((l, idx) => {
+                csv += `"${idx + 1}","${l.timestamp}","${l.nim}","${l.nama}","${l.status}"\n`;
             });
 
-            saveToLocalStorage();
-            renderMasterTable();
-            closeModal();
-            showToast(`Berhasil menambahkan ${addedCount} mahasiswa baru`, 'success');
-        }
-
-        // Render Recap Matrix Table
-        function renderRecapTable() {
-            const thead = document.getElementById('recap-thead');
-            const tbody = document.getElementById('recap-tbody');
-
-            // 1. Build Header
-            let headerHTML = `
-                <tr>
-                    <th class="py-3 px-4 sticky left-0 bg-slate-100 border-r">NIM</th>
-                    <th class="py-3 px-4 sticky left-20 bg-slate-100 border-r">Nama Mahasiswa</th>
-            `;
-            appState.sessions.forEach(sess => {
-                headerHTML += `<th class="py-3 px-4 text-center">P${sess.id}</th>`;
-            });
-            headerHTML += `<th class="py-3 px-4 text-center border-l bg-slate-100">Total Hadir</th></tr>`;
-            thead.innerHTML = headerHTML;
-
-            // 2. Build Rows
-            let totalHadirGlobal = 0;
-            let totalLateGlobal = 0;
-            let totalAlphaGlobal = 0;
-
-            let bodyHTML = '';
-            appState.students.forEach(student => {
-                let hadirCount = 0;
-                let rowHTML = `
-                    <tr class="hover:bg-slate-50 transition">
-                        <td class="py-3 px-4 font-mono font-semibold sticky left-0 bg-white border-r">${student.nim}</td>
-                        <td class="py-3 px-4 font-medium sticky left-20 bg-white border-r">${student.name}</td>
-                `;
-
-                appState.sessions.forEach(sess => {
-                    const record = appState.attendances.find(a => a.sessionId === sess.id && a.nim === student.nim);
-                    if (record) {
-                        if (record.status === 'HADIR') {
-                            hadirCount++;
-                            totalHadirGlobal++;
-                            rowHTML += `<td class="py-3 px-4 text-center"><span class="px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 font-bold text-xs">H</span></td>`;
-                        } else {
-                            hadirCount++;
-                            totalLateGlobal++;
-                            rowHTML += `<td class="py-3 px-4 text-center"><span class="px-2 py-0.5 rounded-md bg-amber-100 text-amber-800 font-bold text-xs">T</span></td>`;
-                        }
-                    } else {
-                        totalAlphaGlobal++;
-                        rowHTML += `<td class="py-3 px-4 text-center"><span class="px-2 py-0.5 rounded-md bg-rose-100 text-rose-800 font-bold text-xs">A</span></td>`;
-                    }
-                });
-
-                rowHTML += `<td class="py-3 px-4 text-center font-bold border-l bg-slate-50">${hadirCount} / ${appState.sessions.length}</td></tr>`;
-                bodyHTML += rowHTML;
-            });
-
-            tbody.innerHTML = bodyHTML;
-
-            // 3. Update Stat Cards
-            document.getElementById('stat-total-students').textContent = appState.students.length;
-            document.getElementById('stat-total-hadir').textContent = totalHadirGlobal;
-            document.getElementById('stat-total-late').textContent = totalLateGlobal;
-            document.getElementById('stat-total-alpha').textContent = totalAlphaGlobal;
-        }
-
-        // Export Recap to CSV (Excel / Google Sheets compatible)
-        function exportRecapCSV() {
-            let csv = [];
-            // Header
-            let headers = ["NIM", "Nama Mahasiswa"];
-            appState.sessions.forEach(s => headers.push(`Pertemuan ${s.id}`));
-            headers.push("Total Kehadiran");
-            csv.push(headers.join(","));
-
-            // Rows
-            appState.students.forEach(student => {
-                let row = [`"${student.nim}"`, `"${student.name}"`];
-                let count = 0;
-                appState.sessions.forEach(sess => {
-                    const record = appState.attendances.find(a => a.sessionId === sess.id && a.nim === student.nim);
-                    if (record) {
-                        count++;
-                        row.push(record.status);
-                    } else {
-                        row.push("ALPHA");
-                    }
-                });
-                row.push(`${count}/${appState.sessions.length}`);
-                csv.push(row.join(","));
-            });
-
-            // Download CSV File
-            const csvString = csv.join("\n");
-            const blob = new Blob([csvString], { type: "text/csv;charset=utf-8;" });
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
             const url = URL.createObjectURL(blob);
             const link = document.createElement("a");
             link.setAttribute("href", url);
-            link.setAttribute("download", `Rekap_Presensi_Perkuliahan_${new Date().toISOString().slice(0,10)}.csv`);
+            link.setAttribute("download", `Rekap_Absensi_Pertemuan_${selectedMeeting}.csv`);
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
-
-            showToast('Rekap presensi berhasil di-export ke CSV', 'success');
         }
 
-        // GAS Code Helper
-        function copyGasCode() {
-            const code = document.getElementById('gas-code-block').innerText;
-            const textarea = document.createElement('textarea');
-            textarea.value = code;
-            document.body.appendChild(textarea);
-            textarea.select();
-            document.execCommand('copy');
-            document.body.removeChild(textarea);
-            showToast('Kode Apps Script berhasil disalin!', 'success');
+        function showToast(title, message, type = 'emerald') {
+            const toast = document.getElementById('toast-notification');
+            document.getElementById('toast-title').innerText = title;
+            document.getElementById('toast-message').innerText = message;
+            const tIcon = document.getElementById('toast-icon');
+
+            if (type === 'emerald') {
+                tIcon.className = 'text-emerald-400 text-xl mt-0.5';
+                tIcon.innerHTML = `<i class="fa-solid fa-circle-check"></i>`;
+            } else if (type === 'amber') {
+                tIcon.className = 'text-amber-400 text-xl mt-0.5';
+                tIcon.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i>`;
+            } else {
+                tIcon.className = 'text-rose-400 text-xl mt-0.5';
+                tIcon.innerHTML = `<i class="fa-solid fa-circle-xmark"></i>`;
+            }
+
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            setTimeout(() => hideToast(), 4000);
         }
 
-        function openGasModal() {
-            switchMode('dosen');
-            switchAdminTab('gas');
-        }
-
-        // UI Modal Helpers
-        function openModal(contentHtml) {
-            const overlay = document.getElementById('modal-overlay');
-            const box = document.getElementById('modal-box');
-            document.getElementById('modal-content').innerHTML = contentHtml;
-
-            overlay.classList.remove('hidden');
-            setTimeout(() => {
-                box.classList.remove('scale-95', 'opacity-0');
-                box.classList.add('scale-100', 'opacity-100');
-            }, 10);
-        }
-
-        function closeModal() {
-            const overlay = document.getElementById('modal-overlay');
-            const box = document.getElementById('modal-box');
-
-            box.classList.remove('scale-100', 'opacity-100');
-            box.classList.add('scale-95', 'opacity-0');
-            setTimeout(() => {
-                overlay.classList.add('hidden');
-            }, 200);
-        }
-
-        // Custom Toast Notifications
-        function showToast(message, type = 'info') {
-            const container = document.getElementById('toast-container');
-            const toast = document.createElement('div');
-
-            const bgClass = type === 'success' ? 'bg-emerald-600 text-white' : type === 'error' ? 'bg-rose-600 text-white' : 'bg-slate-800 text-white';
-            
-            toast.className = `${bgClass} px-4 py-3 rounded-xl shadow-xl text-xs font-semibold flex items-center gap-2 pointer-events-auto transition-all transform translate-y-2 opacity-0`;
-            toast.innerHTML = `<span>${message}</span>`;
-
-            container.appendChild(toast);
-
-            setTimeout(() => {
-                toast.classList.remove('translate-y-2', 'opacity-0');
-            }, 10);
-
-            setTimeout(() => {
-                toast.classList.add('opacity-0', 'translate-y-2');
-                setTimeout(() => toast.remove(), 300);
-            }, 3000);
-        }
-        const scriptURL = 'https://script.google.com/macros/s/AKfycbzhGZDkX7-yG2WyWfj-GVxe_mBpNSrSMobMHuR5wjwoSWytZTuSQKcjnjK0NHRVMZ0J/exec';
-
-
-        function kirimAbsen(nim, nama, pertemuan) {
-            fetch(scriptURL, {
-                method: 'POST',
-                body: JSON.stringify({
-                    nim: nim,
-                    nama: nama,
-                    pertemuan: pertemuan
-                })
-            })
-            .then(response => response.json())
-            .then(data => {
-                alert("Absensi berhasil disimpan!");
-                // Update UI atau rekap di sini
-            })
-            .catch(error => console.error('Error!', error.message));
+        function hideToast() {
+            document.getElementById('toast-notification').classList.add('translate-y-20', 'opacity-0');
         }
     </script>
 </body>
