@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistem Absensi Mahasiswa - Sekretaris</title>
+    <title>Sistem Absensi Mahasiswa</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- FontAwesome Icons -->
@@ -406,12 +406,13 @@
         </div>
         <button onclick="hideToast()" class="text-slate-500 hover:text-slate-300 text-sm"><i class="fa-solid fa-xmark"></i></button>
     </div>
+    
 
     <!-- JavaScript Logic -->
     <script>
         let state = {
             adminEmail: 'dairyfindi@gmail.com',
-            adminPIN: '1234',
+            adminPIN: 'Dary2627',
             pertemuan: 1,
             jamBuka: '08:00',
             jamTutup: '10:00',
@@ -799,6 +800,19 @@
         function hideToast() {
             document.getElementById('toast-notification').classList.add('translate-y-20', 'opacity-0');
         }
+        const scriptURL = 'https://script.google.com/macros/s/AKfycbzi6zIIK6llqEU70Y_yZLMDdYv0VF147NTkQ5MpGUET7Uk1YEIAg7K9vXZBkwYPH8pw/exec'; 
+        const form = document.getElementById('myForm');
+
+        form.addEventListener('submit', e => {
+            e.preventDefault(); 
+            
+            fetch(scriptURL, { 
+                method: 'POST', 
+                body: new FormData(form) 
+            })
+            .then(response => alert('Data berhasil dikirim, Tuan!'))
+            .catch(error => console.error('Gagal mengirim data:', error.message));
+        });
     </script>
 </body>
 </html>
